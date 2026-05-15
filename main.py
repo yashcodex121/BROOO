@@ -98,7 +98,7 @@ async def start(_, m: Message):
     )
 
 
-# ================= GROUP INPUT =====================
+# ================= GROUP ====================
 
 @bot.on_message(filters.private & filters.text & ~filters.command("start"))
 async def text_handler(_, m: Message):
@@ -203,7 +203,7 @@ async def audio_handler(_, m: Message):
         )
 
 
-# ================= REPLAY ===================
+# ================= REPLAY ====================
 
 @bot.on_callback_query(filters.regex("replay"))
 async def replay(_, cb: CallbackQuery):
@@ -238,7 +238,7 @@ async def replay(_, cb: CallbackQuery):
         await cb.message.reply_text(str(e))
 
 
-# ================= NEW AUDIO ======================
+# ================= NEW AUDIO ====================
 
 @bot.on_callback_query(filters.regex("new"))
 async def new_audio(_, cb: CallbackQuery):
@@ -271,7 +271,7 @@ async def new_audio(_, cb: CallbackQuery):
     )
 
 
-# ================= STOP =====================
+# ================= STOP ====================
 
 @bot.on_callback_query(filters.regex("stop"))
 async def stop(_, cb: CallbackQuery):
@@ -297,7 +297,7 @@ async def stop(_, cb: CallbackQuery):
         await cb.message.edit_text(str(e))
 
 
-# ================= MAIN =====================
+# ================= MAIN ====================
 
 async def main():
 

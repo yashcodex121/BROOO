@@ -11,8 +11,7 @@ from pyrogram.types import (
     CallbackQuery
 )
 
-from pytgcalls import PyTgCalls
-from pytgcalls.types.stream import MediaStream
+from pytgcalls import GroupCallFactory
 
 # ================= CONFIG =================
 
@@ -37,7 +36,9 @@ userbot = Client(
     session_string=SESSION_STRING
 )
 
-calls = PyTgCalls(userbot)
+group_call = GroupCallFactory(
+    userbot
+).get_file_group_call()
 
 # ================= DATABASE =================
 
@@ -163,10 +164,9 @@ async def audio_handler(_, m: Message):
 
         chat_id = chat.id
 
-        await calls.play(
-            chat_id,
-            MediaStream(path)
-        )
+        await group_call.start(chat_id)
+
+        group_call.input_filename = path
 
         active_calls[uid] = chat_id
 
@@ -210,7 +210,10 @@ async def replay(_, cb: CallbackQuery):
     uid = cb.from_user.id
 
     if uid not in active_calls:
-        return await cb.answer("No active VC", show_alert=True)
+        return await cb.answer(
+            "No active VC",
+            show_alert=True
+        )
 
     user = get_user(uid)
 
@@ -218,16 +221,15 @@ async def replay(_, cb: CallbackQuery):
 
         chat_id = active_calls[uid]
 
-        await calls.leave_call(chat_id)
+        await group_call.stop()
 
         await asyncio.sleep(2)
 
-        await calls.play(
-            chat_id,
-            MediaStream(user["audio"])
-        )
+        await group_call.start(chat_id)
 
-        await cb.answer("Replaying")
+        group_call.input_filename = user["audio"]
+
+        await cb.answer("🔄 Replaying")
 
     except Exception as e:
 
@@ -242,6 +244,11 @@ async def new_audio(_, cb: CallbackQuery):
     uid = cb.from_user.id
 
     user = get_user(uid)
+
+    try:
+        await group_call.stop()
+    except:
+        pass
 
     if user:
 
@@ -263,10 +270,9 @@ async def stop(_, cb: CallbackQuery):
 
     try:
 
+        await group_call.stop()
+
         if uid in active_calls:
-
-            await calls.leave_call(active_calls[uid])
-
             del active_calls[uid]
 
         await cb.message.edit_text(
@@ -283,15 +289,12 @@ async def stop(_, cb: CallbackQuery):
 async def main():
 
     await bot.start()
-    print("Bot Started")
+    print("✅ Bot Started")
 
     await userbot.start()
-    print("Userbot Started")
+    print("✅ Userbot Started")
 
-    await calls.start()
-    print("PyTgCalls Started")
-
-    print("VC Bot Running")
+    print("✅ VC Bot Running")
 
     await asyncio.Event().wait()
 

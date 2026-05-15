@@ -1,4 +1,3 @@
 pyrogram==2.0.106
 tgcrypto
-pytgcalls==0.0.24
-numpy
+pytgcalls==3.0.0.dev24

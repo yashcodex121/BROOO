@@ -11,7 +11,8 @@ from pyrogram.types import (
     CallbackQuery
 )
 
-from pytgcalls import GroupCallFactory
+from pytgcalls import PyTgCalls
+from pytgcalls.types.input_stream import AudioPiped
 
 # ================= CONFIG =================
 
@@ -36,9 +37,7 @@ userbot = Client(
     session_string=SESSION_STRING
 )
 
-group_call = GroupCallFactory(
-    userbot
-).get_file_group_call()
+calls = PyTgCalls(userbot)
 
 # ================= DATABASE =================
 
@@ -95,11 +94,11 @@ async def start(_, m: Message):
 
     await m.reply_text(
         "🎵 **Anonymous VC Player**\n\n"
-        "Send group username/link:"
+        "Send group username or link:"
     )
 
 
-# ================= TEXT =====================
+# ================= GROUP INPUT =====================
 
 @bot.on_message(filters.private & filters.text & ~filters.command("start"))
 async def text_handler(_, m: Message):
@@ -127,7 +126,7 @@ async def text_handler(_, m: Message):
 
         await m.reply_text(
             f"✅ Group Saved: @{grp}\n\n"
-            "Now send audio."
+            "Now send audio file."
         )
 
 
@@ -154,6 +153,7 @@ async def audio_handler(_, m: Message):
         await m.download(file_name=path)
 
         user["audio"] = path
+
         save_user(uid, user)
 
         grp = user["group"]
@@ -164,9 +164,10 @@ async def audio_handler(_, m: Message):
 
         chat_id = chat.id
 
-        await group_call.start(chat_id)
-
-        group_call.input_filename = path
+        await calls.join_group_call(
+            chat_id,
+            AudioPiped(path)
+        )
 
         active_calls[uid] = chat_id
 
@@ -221,13 +222,14 @@ async def replay(_, cb: CallbackQuery):
 
         chat_id = active_calls[uid]
 
-        await group_call.stop()
+        await calls.leave_group_call(chat_id)
 
         await asyncio.sleep(2)
 
-        await group_call.start(chat_id)
-
-        group_call.input_filename = user["audio"]
+        await calls.join_group_call(
+            chat_id,
+            AudioPiped(user["audio"])
+        )
 
         await cb.answer("🔄 Replaying")
 
@@ -236,7 +238,7 @@ async def replay(_, cb: CallbackQuery):
         await cb.message.reply_text(str(e))
 
 
-# ================= NEW ======================
+# ================= NEW AUDIO ======================
 
 @bot.on_callback_query(filters.regex("new"))
 async def new_audio(_, cb: CallbackQuery):
@@ -246,7 +248,15 @@ async def new_audio(_, cb: CallbackQuery):
     user = get_user(uid)
 
     try:
-        await group_call.stop()
+
+        if uid in active_calls:
+
+            await calls.leave_group_call(
+                active_calls[uid]
+            )
+
+            del active_calls[uid]
+
     except:
         pass
 
@@ -270,9 +280,12 @@ async def stop(_, cb: CallbackQuery):
 
     try:
 
-        await group_call.stop()
-
         if uid in active_calls:
+
+            await calls.leave_group_call(
+                active_calls[uid]
+            )
+
             del active_calls[uid]
 
         await cb.message.edit_text(
@@ -294,7 +307,10 @@ async def main():
     await userbot.start()
     print("✅ Userbot Started")
 
-    print("✅ VC Bot Running")
+    await calls.start()
+    print("✅ PyTgCalls Started")
+
+    print("🎵 VC Bot Running")
 
     await asyncio.Event().wait()
 

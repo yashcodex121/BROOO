@@ -1,4 +1,5 @@
 pyrogram==2.0.106
 tgcrypto
-git+https://github.com/pytgcalls/pytgcalls.git
+py-tgcalls==2.2.12
 python-dotenv
+ntgcalls==2.0.6
